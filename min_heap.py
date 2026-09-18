@@ -1,5 +1,5 @@
 # 만료 시각이 가장 빠른 항목을 찾는 최소 힙을 구현한다.
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 class MinHeap:
@@ -26,7 +26,7 @@ class MinHeap:
                     /       \
                 index 1     index 2
                 /    \       /    \
-                3      4     5      6      라고 가정하고 6번을 기준으로 parent_index를 잡으면 2가 나옴
+               3      4     5      6      라고 가정하고 6번을 기준으로 parent_index를 잡으면 2가 나옴
                                            그리고 2에서 또 부모를 잡으면 인덱스가 0이 나옴
         """
 
@@ -35,6 +35,13 @@ class MinHeap:
         self._items.append(item)
         index = self.size() - 1
         self._heapify_up(index)
+
+    def peek(self) -> Optional[Tuple[float, str]]:
+        """최소 항목을 제거하지 않고 반환하며, 빈 힙이면 None을 반환한다."""
+        if not self._items:
+            return None
+        else:
+            return self._items[0]
 
     def size(self) -> int:
         """현재 힙에 저장된 항목 수를 반환한다."""
