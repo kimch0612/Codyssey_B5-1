@@ -1,4 +1,5 @@
 # 이중 연결 리스트의 노드와 삽입·삭제·이동 연산을 구현한다.
+from typing import Optional
 
 
 class Node:
@@ -46,3 +47,21 @@ class DoublyLinkedList:
             self.tail = new_node
         
         return new_node
+
+    def remove_front(self) -> Optional[Node]:
+        """맨 앞 노드를 분리해 반환하고, 빈 리스트이면 None을 반환한다."""
+        if self.head is None:
+            return None
+        
+        del_node = self.head
+        if del_node == self.tail:
+            self.head = None
+            self.tail = None
+        else:
+            self.head = del_node.next
+            self.head.prev = None
+            
+            del_node.prev = None
+            del_node.next = None
+
+        return del_node
