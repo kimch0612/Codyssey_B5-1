@@ -66,7 +66,7 @@ class HashMap:
                 current = current.next
 
     def put(self, key: str, value: object) -> None:
-        """새 키의 엔트리를 추가하거나 기존 키의 값을 갱신한다."""
+        """새 키를 추가하거나 기존 값을 갱신하고, 필요한 경우 버킷을 확장한다."""
         entry = self._find_node(key)
         if entry == None: # 새 엔트리를 추가
             idx = self._hash(key)
@@ -74,6 +74,9 @@ class HashMap:
             bucket = self._buckets[idx]
             bucket.insert_back(hash_entry)
             self._size += 1
+
+            if self._load_factor() > 0.75: # 사용량이 75%를 넘어가면 확장하자
+                self._resize()
         else:             # 기존 엔트리를 갱신
             entry.data.value = value
 
