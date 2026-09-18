@@ -59,3 +59,23 @@ class HashMap:
             self._size += 1
         else:             # 기존 엔트리를 갱신
             entry.data.value = value
+
+    def get(self, key: str) -> Optional[object]:
+        """키에 저장된 값 객체를 반환하고, 없는 키이면 None을 반환한다."""
+        entry = self._find_node(key)
+        if entry == None:
+            return None
+        else:
+            return entry.data.value
+
+    def contains(self, key: str) -> bool:
+        """값의 내용과 관계없이 해당 키의 존재 여부를 반환한다."""
+        entry = self._find_node(key)
+        if entry == None:
+            return False
+        else:
+            return True
+
+    def size(self) -> int:
+        """현재 저장된 서로 다른 키의 개수를 반환한다."""
+        return self._size
