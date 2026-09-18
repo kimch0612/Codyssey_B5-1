@@ -48,6 +48,10 @@ class HashMap:
         
         return None
 
+    def _load_factor(self) -> float:
+        """현재 저장된 키 수를 버킷 수로 나눈 로드 팩터를 반환한다."""
+        return self._size / self._capacity
+
     def _resize(self) -> None:
         """버킷 수를 2배로 늘리고 기존 엔트리를 새 버킷에 재배치한다."""
         old_buckets = self._buckets
