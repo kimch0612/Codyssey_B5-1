@@ -47,3 +47,15 @@ class HashMap:
                 current = current.next
         
         return None
+
+    def put(self, key: str, value: object) -> None:
+        """새 키의 엔트리를 추가하거나 기존 키의 값을 갱신한다."""
+        entry = self._find_node(key)
+        if entry == None: # 새 엔트리를 추가
+            idx = self._hash(key)
+            hash_entry = HashEntry(key, value)
+            bucket = self._buckets[idx]
+            bucket.insert_back(hash_entry)
+            self._size += 1
+        else:             # 기존 엔트리를 갱신
+            entry.data.value = value
