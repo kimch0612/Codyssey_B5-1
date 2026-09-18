@@ -65,3 +65,21 @@ class DoublyLinkedList:
             del_node.next = None
 
         return del_node
+
+    def remove_back(self) -> Optional[Node]:
+        """맨 뒤 노드를 분리해 반환하고, 빈 리스트이면 None을 반환한다."""
+        if self.head is None:
+            return None
+
+        del_node = self.tail
+        if del_node == self.head:
+            self.head = None
+            self.tail = None
+        else:
+            self.tail = del_node.prev
+            self.tail.next = None
+
+            del_node.prev = None
+            del_node.next = None
+        
+        return del_node
