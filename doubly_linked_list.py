@@ -18,3 +18,17 @@ class DoublyLinkedList:
         """head와 tail이 빈 상태인 리스트를 초기화한다."""
         self.head = None
         self.tail = None
+
+    def insert_front(self, data: object) -> Node:
+        """데이터를 담은 새 노드를 맨 앞에 삽입하고 해당 노드를 반환한다."""
+        new_node = Node(data)
+
+        if (self.head is None) and (self.tail is None):
+            self.head = new_node
+            self.tail = new_node
+        else:
+            self.head.prev = new_node
+            new_node.next = self.head
+            self.head = new_node
+
+        return new_node
