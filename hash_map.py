@@ -48,6 +48,19 @@ class HashMap:
         
         return None
 
+    def _resize(self) -> None:
+        """버킷 수를 2배로 늘리고 기존 엔트리를 새 버킷에 재배치한다."""
+        old_buckets = self._buckets
+        self._capacity = self._capacity * 2
+        self._buckets = [DoublyLinkedList() for _ in range(self._capacity)]
+
+        for bucket in old_buckets:
+            current = bucket.head
+            while current:
+                idx = self._hash(current.data.key)
+                self._buckets[idx].insert_back(current.data)
+                current = current.next
+
     def put(self, key: str, value: object) -> None:
         """새 키의 엔트리를 추가하거나 기존 키의 값을 갱신한다."""
         entry = self._find_node(key)
@@ -106,4 +119,3 @@ class HashMap:
                 current = current.next
         
         return key_list
-
