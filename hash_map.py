@@ -1,6 +1,6 @@
 # 해시 함수와 체이닝 기반 해시맵의 저장·조회·삭제 및 확장을 구현한다.
 
-from typing import Optional
+from typing import List, Optional
 
 from doubly_linked_list import DoublyLinkedList, Node
 
@@ -91,3 +91,19 @@ class HashMap:
             bucket.remove_node(entry)
             self._size -= 1
             return True
+
+    def keys(self) -> List[str]:
+        """저장된 모든 키를 한 번씩 담은 새 리스트를 반환한다."""
+        key_list = [None] * self._size
+        # 과제에서 고정 길이 배열/인덱스 접근을 요구해서 하긴 하는데.. 이게 append에 비해서 시간복잡도상 이득이 있는진 모르겠다
+        idx = 0
+
+        for bucket in self._buckets:
+            current = bucket.head
+            while current:
+                key_list[idx] = current.data.key
+                idx += 1
+                current = current.next
+        
+        return key_list
+
