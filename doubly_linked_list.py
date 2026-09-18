@@ -108,3 +108,36 @@ class DoublyLinkedList:
         node.prev = None
 
         return node
+
+    def move_to_front(self, node: Node) -> None:
+        """이 리스트에 연결된 노드를 같은 객체 그대로 맨 앞으로 옮긴다."""
+        if (node == self.tail) and (node == self.head):
+            pass # 노드가 하나만 존재하는 경우 옮기는 건 무의미하다
+        elif node == self.head:
+            pass # 맨 앞에 있는 노드를 맨 앞으로 옮기는 건 무의미하다
+        elif node == self.tail:   # 맨 뒤에 있는 노드를 맨 앞으로 옮긴다
+            prev_node = node.prev
+            prev_node.next = None
+
+            head_node = self.head
+            head_node.prev = node
+
+            node.prev = None
+            node.next = self.head
+
+            self.head = node
+            self.tail = prev_node
+        else:                     # 중간에 있는 노드를 맨 앞으로 옮긴다
+            next_node = node.next
+            prev_node = node.prev
+            
+            next_node.prev = prev_node
+            prev_node.next = next_node
+
+            node.prev = None
+            node.next = self.head
+            self.head.prev = node
+            
+            self.head = node
+
+        return None
