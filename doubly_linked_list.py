@@ -83,3 +83,28 @@ class DoublyLinkedList:
             del_node.next = None
         
         return del_node
+
+    def remove_node(self, node: Node) -> Node:
+        """이 리스트에 연결된 지정 노드를 분리하고 해당 노드를 반환한다."""
+        if (node == self.head) and (node == self.tail):
+            self.head = None
+            self.tail = None
+        elif node == self.head: # 맨 앞에 있는 노드를 삭제하려고 하는가?
+            next_node = node.next
+            next_node.prev = None
+            self.head = next_node
+        elif node == self.tail: # 맨 뒤에 있는 노드를 삭제하려 하는가?
+            prev_node = node.prev
+            prev_node.next = None
+            self.tail = prev_node
+        else:                   # 중간에 있는 노드를 삭제하려 하는가?
+            next_node = node.next
+            prev_node = node.prev
+
+            next_node.prev = prev_node
+            prev_node.next = next_node
+
+        node.next = None
+        node.prev = None
+
+        return node
