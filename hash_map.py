@@ -79,3 +79,15 @@ class HashMap:
     def size(self) -> int:
         """현재 저장된 서로 다른 키의 개수를 반환한다."""
         return self._size
+
+    def remove(self, key: str) -> bool:
+        """키를 찾아 삭제하면 True를, 없는 키이면 상태를 유지하고 False를 반환한다."""
+        entry = self._find_node(key)
+        if entry == None:
+            return False
+        else:
+            idx = self._hash(key)
+            bucket = self._buckets[idx]
+            bucket.remove_node(entry)
+            self._size -= 1
+            return True
