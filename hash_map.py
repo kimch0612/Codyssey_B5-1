@@ -1,6 +1,8 @@
 # 해시 함수와 체이닝 기반 해시맵의 저장·조회·삭제 및 확장을 구현한다.
 
-from doubly_linked_list import DoublyLinkedList
+from typing import Optional
+
+from doubly_linked_list import DoublyLinkedList, Node
 
 
 class HashEntry:
@@ -27,5 +29,21 @@ class HashMap:
 
         for letter in key:
             result = (result * 37 + ord(letter)) % self._capacity
+            # 문자 번호를 단순히 더하면 "ab"와 "ba"가 같아지므로
+            # 기존 `result`에 일정한 수를 곱해 앞선 문자에 가중치를 주고,
+            # 현재 문자의 `ord()`를 더해 문자의 내용과 순서를 함께 반영함
 
         return result
+
+    def _find_node(self, key: str) -> Optional[Node]:
+        """키와 일치하는 기존 버킷 노드를 반환하고, 없으면 None을 반환한다."""
+        idx = self._hash(key)
+        current = self._buckets[idx].head
+
+        while current:
+            if key == current.data.key:
+                return current
+            else:
+                current = current.next
+        
+        return None
