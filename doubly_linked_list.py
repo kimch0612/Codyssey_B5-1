@@ -32,3 +32,17 @@ class DoublyLinkedList:
             self.head = new_node
 
         return new_node
+
+    def insert_back(self, data: object) -> Node:
+        """데이터를 담은 새 노드를 맨 뒤에 삽입하고 해당 노드를 반환한다."""
+        new_node = Node(data)
+
+        if (self.head is None) and (self.tail is None):
+            self.head = new_node
+            self.tail = new_node
+        else:
+            self.tail.next = new_node
+            new_node.prev = self.tail
+            self.tail = new_node
+        
+        return new_node
