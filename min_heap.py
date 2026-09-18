@@ -30,6 +30,30 @@ class MinHeap:
                                            그리고 2에서 또 부모를 잡으면 인덱스가 0이 나옴
         """
 
+    def _heapify_down(self, index: int) -> None:
+        """지정 위치의 항목을 자식 방향으로 옮겨 최소 힙 조건을 복구한다."""
+        current = index
+        while True:
+            left_index = 2 * current + 1
+            right_index = 2 * current + 2
+
+            if left_index >= self.size():
+                break # left_index가 size와 같아도 이미 인덱스를 벗어난 범위임
+            else:
+                child_index = left_index
+
+            if 0 <= right_index < len(self._items): # 오른쪽 인덱스가 유효(존재)한다면
+                if self._items[right_index][0] < self._items[child_index][0]:
+                    child_index = right_index       # 비교 대상군을 오른쪽으로 슥삭하자
+            
+            if self._items[current][0] <= self._items[child_index][0]: # 현재 만료 시각 <= 선택한 자식의 만료 시각 (up과 반대다)
+                break
+            else:
+                tmp_item = self._items[current]
+                self._items[current] = self._items[child_index]
+                self._items[child_index] = tmp_item
+                current = child_index
+
     def push(self, item: Tuple[float, str]) -> None:
         """만료 시각과 키를 담은 항목을 추가하고 최소 힙 조건을 유지한다."""
         self._items.append(item)
@@ -42,6 +66,20 @@ class MinHeap:
             return None
         else:
             return self._items[0]
+
+    def pop(self) -> Optional[Tuple[float, str]]:
+        """최소 항목을 제거해 반환하며, 빈 힙이면 None을 반환한다."""
+        if not self._items:
+            return None
+        else:
+            min_item = self.peek()         # 맨 앞 데이터
+            last_item = self._items.pop()  # 맨 뒤 데이터
+
+            if self._items:
+                self._items[0] = last_item # 맨 뒤 데이터를 맨 앞으로 이동
+                self._heapify_down(0)
+
+            return min_item
 
     def size(self) -> int:
         """현재 힙에 저장된 항목 수를 반환한다."""
