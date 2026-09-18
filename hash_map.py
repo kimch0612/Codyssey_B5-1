@@ -19,4 +19,13 @@ class HashMap:
         """독립된 빈 버킷 8개와 저장된 키 수 0인 초기 상태를 만든다."""
         self._capacity = 8  # 현재 버킷 수를 보관하며, 버킷 인덱스 계산과 확장 판단에 사용
         self._size = 0      # 현재 저장된 서로 다른 키의 개수를 보관
-        self._buckets = [DoublyLinkedList() for _ in range(self._capacity)]
+        self._buckets = [DoublyLinkedList() for _ in range(self._capacity)] # 각 버킷의 연결 리스트를 담아, 계산한 인덱스로 해당 버킷에 접근하게 함
+
+    def _hash(self, key: str) -> int:
+        """문자열 키로 현재 버킷 범위의 인덱스를 계산하며 저장 상태는 바꾸지 않는다."""
+        result = 0
+
+        for letter in key:
+            result = (result * 37 + ord(letter)) % self._capacity
+
+        return result
