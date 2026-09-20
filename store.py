@@ -20,12 +20,20 @@ class Store:
 
     def __init__(self) -> None:
         """빈 저장소를 만든다."""
-        self._data = HashMap()  # 직접 구현한 해시맵. 키는 str, 값은 str
+        self._data = HashMap()  # 직접 구현한 해시맵. 키는 str, 값은 LRU 리스트의 Node
         self._lru = DoublyLinkedList()
 
     def set(self, key: str, value: str) -> None:
         """키에 값을 저장한다. 새 키면 추가하고, 기존 키면 값을 덮어쓴다."""
-        self._data.put(key, value)
+        lru_node = self._data.get(key)
+
+        if lru_node is None:
+            entry = StoreEntry(key, value)
+            lnode = self._lru.insert_front(entry)
+            self._data.put(key, lnode)
+        else:
+            # 다음 학습 단위: 기존 엔트리의 값 갱신과 MRU 이동
+            pass
 
     def get(self, key: str) -> Optional[str]:
         """키의 값을 반환한다. 존재하면 값 문자열, 없으면 None을 반환한다."""
