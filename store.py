@@ -24,3 +24,25 @@ class Store:
             return None
         else:
             return result.data.value
+
+    def del_key(self, key: str) -> bool:
+        """키를 삭제한다. 삭제 성공 시 True, 없는 키이면 False를 반환한다."""
+        if self._data.remove(key) is False:
+            return False
+        else:
+            return True
+
+    def exists(self, key: str) -> bool:
+        """키의 존재 여부를 반환한다. 값의 내용과 관계없이 존재하면 True를 반환한다."""
+        if self._data.contains(key) is False:
+            return False
+        else:
+            return True
+
+    def dsize(self) -> int:
+        """현재 저장된 키의 개수를 반환한다."""
+        return self._data.size()
+
+    def keys(self) -> list:
+        """저장된 키를 문자열 목록으로 반환한다. 순서·패턴 매칭은 요구하지 않는다."""
+        return self._data.keys()
