@@ -47,10 +47,17 @@ class Store:
 
     def del_key(self, key: str) -> bool:
         """키를 삭제한다. 삭제 성공 시 True, 없는 키이면 False를 반환한다."""
-        if self._data.remove(key) is False:
+        lru_node = self._data.get(key)
+
+        if lru_node is None:
             return False
         else:
-            return True
+            if self._data.remove(key) is False:
+                # 위쪽에서 이미 검사했으니 이 분기로 빠질 일은 없을 듯..??
+                return False
+            else:
+                lru_node_deleted = self._lru.remove_node(lru_node) # 반환받은 객체는 어쩌지?
+                return True
 
     def exists(self, key: str) -> bool:
         """키의 존재 여부를 반환한다. 값의 내용과 관계없이 존재하면 True를 반환한다."""
