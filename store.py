@@ -41,7 +41,9 @@ class Store:
             self._data.put(key, lnode)
             self._used_memory += self._entry_size(key, value)
         else:
+            old_value = lru_node.data.value
             lru_node.data.value = value
+            self._used_memory += (self._entry_size(key, value) - self._entry_size(key, old_value))
             self._lru.move_to_front(lru_node)
 
     def get(self, key: str) -> Optional[str]:
