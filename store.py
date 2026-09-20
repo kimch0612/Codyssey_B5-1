@@ -3,6 +3,7 @@
 from typing import Optional
 
 from hash_map import HashMap
+from doubly_linked_list import DoublyLinkedList
 
 
 class StoreEntry:
@@ -15,11 +16,12 @@ class StoreEntry:
 
 
 class Store:
-    """문자열 키·값을 보관하는 저장소. 해시맵을 내부 저장소로 사용한다."""
+    """문자열 키·값을 보관하는 저장소. 해시맵과 LRU 이중 연결 리스트를 내부 저장소로 사용한다."""
 
     def __init__(self) -> None:
-        """빈 저장소를 만든다. 내부 해시맵이 키·값의 저장·조회를 담당한다."""
+        """빈 저장소를 만든다."""
         self._data = HashMap()  # 직접 구현한 해시맵. 키는 str, 값은 str
+        self._lru = DoublyLinkedList()
 
     def set(self, key: str, value: str) -> None:
         """키에 값을 저장한다. 새 키면 추가하고, 기존 키면 값을 덮어쓴다."""
