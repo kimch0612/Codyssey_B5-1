@@ -5,6 +5,15 @@ from typing import Optional
 from hash_map import HashMap
 
 
+class StoreEntry:
+    """문자열 키와 값을 묶는 저장소 엔트리. LRU 리스트 노드의 data에 보관된다."""
+
+    def __init__(self, key: str, value: str) -> None:
+        """전달받은 키와 값을 보관한다."""
+        self.key = key
+        self.value = value
+
+
 class Store:
     """문자열 키·값을 보관하는 저장소. 해시맵을 내부 저장소로 사용한다."""
 
