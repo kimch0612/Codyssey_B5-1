@@ -37,12 +37,13 @@ class Store:
 
     def get(self, key: str) -> Optional[str]:
         """키의 값을 반환한다. 존재하면 값 문자열, 없으면 None을 반환한다."""
-        entry = self._data.get(key)
+        lru_node = self._data.get(key)
 
-        if entry == None:
+        if lru_node is None:
             return None
         else:
-            return entry
+            self._lru.move_to_front(lru_node)
+            return lru_node.data.value
 
     def del_key(self, key: str) -> bool:
         """키를 삭제한다. 삭제 성공 시 True, 없는 키이면 False를 반환한다."""
