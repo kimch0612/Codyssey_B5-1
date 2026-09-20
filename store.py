@@ -32,8 +32,8 @@ class Store:
             lnode = self._lru.insert_front(entry)
             self._data.put(key, lnode)
         else:
-            # 다음 학습 단위: 기존 엔트리의 값 갱신과 MRU 이동
-            pass
+            lru_node.data.value = value
+            self._lru.move_to_front(lru_node)
 
     def get(self, key: str) -> Optional[str]:
         """키의 값을 반환한다. 존재하면 값 문자열, 없으면 None을 반환한다."""
