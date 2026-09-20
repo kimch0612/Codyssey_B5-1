@@ -63,11 +63,14 @@ class Store:
         if lru_node is None:
             return False
         else:
+            entry_size = self._entry_size(lru_node.data.key, lru_node.data.value)
+
             if self._data.remove(key) is False:
                 # 위쪽에서 이미 검사했으니 이 분기로 빠질 일은 없을 듯..??
                 return False
             else:
                 lru_node_deleted = self._lru.remove_node(lru_node) # 반환받은 객체는 어쩌지? 일단 들고는 있어보자
+                self._used_memory -= entry_size
                 return True
 
     def exists(self, key: str) -> bool:
