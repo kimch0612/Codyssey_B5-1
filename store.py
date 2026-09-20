@@ -23,6 +23,7 @@ class Store:
         self._data = HashMap()  # 직접 구현한 해시맵. 키는 str, 값은 LRU 리스트의 Node
         self._lru = DoublyLinkedList()
         self._used_memory = 0
+        self._maxmemory = 0
 
     def _entry_size(self, key: str, value: str) -> int:
         """키와 값의 UTF-8 바이트 수 합계를 반환한다."""
@@ -30,6 +31,17 @@ class Store:
             pass # 처리를 해줘야 할까?
 
         return len(key.encode("utf-8")) + len(value.encode("utf-8"))
+
+    def set_maxmemory(self, maxmemory: int) -> bool:
+        """0 이상의 메모리 제한을 저장하고 성공 여부를 반환한다."""
+        if maxmemory < 0:
+            return False        # 음수는 받지 않는다
+        elif maxmemory == 0:
+            self._maxmemory = 0 # 메모리에 제한을 두지 않는다
+        else:                   # 내가 설정한 값으로 적용
+            self._maxmemory = maxmemory
+
+        return True
 
     def set(self, key: str, value: str) -> None:
         """키에 값을 저장한다. 새 키면 추가하고, 기존 키면 값을 덮어쓴다."""
