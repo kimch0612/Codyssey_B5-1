@@ -23,6 +23,13 @@ class Store:
         self._data = HashMap()  # 직접 구현한 해시맵. 키는 str, 값은 LRU 리스트의 Node
         self._lru = DoublyLinkedList()
 
+    def _entry_size(self, key: str, value: str) -> int:
+        """키와 값의 UTF-8 바이트 수 합계를 반환한다."""
+        if (type(key) is not str) or (type(value) is not str):
+            pass # 처리를 해줘야 할까?
+
+        return len(key.encode("utf-8")) + len(value.encode("utf-8"))
+
     def set(self, key: str, value: str) -> None:
         """키에 값을 저장한다. 새 키면 추가하고, 기존 키면 값을 덮어쓴다."""
         lru_node = self._data.get(key)
