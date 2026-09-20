@@ -43,8 +43,13 @@ class Store:
 
         return True
 
-    def set(self, key: str, value: str) -> None:
-        """키에 값을 저장한다. 새 키면 추가하고, 기존 키면 값을 덮어쓴다."""
+    def set(self, key: str, value: str) -> bool:
+        """키에 값을 저장하면 True를, 단일 엔트리 OOM이면 False를 반환한다."""
+        entry_size = self._entry_size(key, value)
+
+        if (self._maxmemory > 0) and (entry_size > self._maxmemory): # Out Of Memory 발생 조건인가?
+            return False
+
         lru_node = self._data.get(key)
 
         if lru_node is None:
@@ -57,6 +62,8 @@ class Store:
             lru_node.data.value = value
             self._used_memory += (self._entry_size(key, value) - self._entry_size(key, old_value))
             self._lru.move_to_front(lru_node)
+
+        return True
 
     def get(self, key: str) -> Optional[str]:
         """키의 값을 반환한다. 존재하면 값 문자열, 없으면 None을 반환한다."""
