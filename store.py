@@ -22,6 +22,7 @@ class Store:
         """빈 저장소를 만든다."""
         self._data = HashMap()  # 직접 구현한 해시맵. 키는 str, 값은 LRU 리스트의 Node
         self._lru = DoublyLinkedList()
+        self._used_memory = 0
 
     def _entry_size(self, key: str, value: str) -> int:
         """키와 값의 UTF-8 바이트 수 합계를 반환한다."""
@@ -38,6 +39,7 @@ class Store:
             entry = StoreEntry(key, value)
             lnode = self._lru.insert_front(entry)
             self._data.put(key, lnode)
+            self._used_memory += self._entry_size(key, value)
         else:
             lru_node.data.value = value
             self._lru.move_to_front(lru_node)
