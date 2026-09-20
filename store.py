@@ -56,7 +56,7 @@ class Store:
                 # 위쪽에서 이미 검사했으니 이 분기로 빠질 일은 없을 듯..??
                 return False
             else:
-                lru_node_deleted = self._lru.remove_node(lru_node) # 반환받은 객체는 어쩌지?
+                lru_node_deleted = self._lru.remove_node(lru_node) # 반환받은 객체는 어쩌지? 일단 들고는 있어보자
                 return True
 
     def exists(self, key: str) -> bool:
