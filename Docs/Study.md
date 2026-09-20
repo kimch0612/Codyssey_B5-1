@@ -1179,6 +1179,30 @@ right_index = 2 * index + 2
 
 **스스로 설명해 보기:** 최소 힙이 “가장 빨리 만료될 키”를 찾는 데 적합하지만, “특정 키의 기록”을 바로 찾는 데는 별도의 고려가 필요한 이유는 무엇인가?
 
+### 6-1. 기본 문자열 저장소 (CHECK 5단계, 5-1 저장·조회)
+
+**근거: Subject 2장·4장 「String 타입 명령어」, 평가 1-1 / CHECK 5단계**
+
+이 절은 `store.py`의 저장소 클래스 `Store`가 문자열 키와 값을 어떻게 보관하는지 설명한다. LRU·메모리·TTL은 각각 후속 단계(6·7·8단계)에서 연결하므로, 지금은 저장·조회 자체의 흐름에만 집중한다.
+
+`Store`는 직접 구현한 `HashMap`을 하나의 내부 저장소로 가진다. `set`과 `get`은 해시맵의 `put`과 `get`을 호출하는 구조다.
+
+| Store 메서드 | 호출하는 HashMap 메서드 | 역할 |
+| --- | --- | --- |
+| `set(key, value)` | `put(key, value)` | 새 키는 추가, 기존 키는 값 교체 |
+| `get(key)` | `get(key)` | 존재하면 값 문자열, 없으면 `None` 반환 |
+
+`set`은 두 경우로 나뉜다.
+
+1. **새 키**: `put`이 기존 노드를 못 찾고 `HashEntry(key, value)`를 만들어 해당 버킷의 `insert_back`으로 추가한다. HashMap의 `_size`가 1 늘어난다.
+2. **기존 키(덮어쓰기)**: `put`이 기존 노드를 찾아 `entry.data.value = value`로 값을 교체한다. `_size`는 변하지 않는다.
+
+`get`의 지역 변수 `entry`가 반환하는 값은 `HashEntry.value`에 보관된 원래 값 객체다. `entry`는 버킷 연결 리스트의 `Node`이며, `entry.data`가 `HashEntry`, `entry.data.value`가 우리가 저장한 문자열이다. 존재하는 키는 `"Alice"` 같은 값 문자열을, 없는 키는 `None`을 반환한다.
+
+**구분할 점**: `HashEntry.value`(저장된 값 문자열)와 `Node.data.value`(같은 객체의 접근경로)는 같은 값의 다른 참조 경로다. `Node`는 연결 리스트의 원소이고, `HashEntry`는 버킷 안에 있는 “키·값 쌍”을 표현하는 객체다.
+
+**스스로 설명해 보기**: `set("a", "1")` → `set("a", "99")` → `get("a")` 순서에서 `HashEntry.value`의 값이 어떻게 변하고, HashMap `_size`가 왜 1을 유지하는가?
+
 ## 7. LRU와 해시맵·리스트의 조합
 
 **근거: Subject 2~4장 「LRU」, 평가 1-2·3-1·3-2**
