@@ -44,6 +44,10 @@ class Store:
 
         return True
 
+    def info_memory(self) -> tuple[int, int, int]:
+        """현재 사용량, 메모리 제한, 제거된 키 수를 순서대로 반환한다."""
+        return self._used_memory, self._maxmemory, self._evicted_keys
+
     def _evict_lru(self) -> bool:
         """가장 오래 사용하지 않은 키 하나를 제거하고 성공 여부를 반환한다."""
         lru_tail = self._lru.tail

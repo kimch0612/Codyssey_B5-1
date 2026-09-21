@@ -238,7 +238,7 @@ LRU 갱신 의무는 원문에 명시된 성공한 `SET`·`GET`에 적용한다.
 - [x] 제거할 때 데이터·LRU·사용량을 함께 갱신한다. TTL 연결은 9단계에서 마무리한다.
 - [x] 메모리 제한으로 제거한 키마다 `evicted_keys`를 1씩 누적한다.
 - [x] 일반 `DEL`을 `evicted_keys`에 포함하지 않는다.
-- [ ] `INFO memory`에서 사용할 `used_memory`, `maxmemory`, `evicted_keys`를 현재 상태에 맞게 제공한다.
+- [x] `INFO memory`에서 사용할 `used_memory`, `maxmemory`, `evicted_keys`를 현재 상태에 맞게 제공한다.
 
 **완료 확인**
 
