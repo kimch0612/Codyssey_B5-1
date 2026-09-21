@@ -68,6 +68,32 @@ class Store:
             self._expiry_heap.push((timer, key))
             return True
 
+    def _purge_expired(self) -> None:
+        """현재 시각까지 만료된 힙 기록과 유효한 엔트리를 정리한다."""
+        current = time.time()
+        while True:
+            heap_item = self._expiry_heap.peek()
+            if heap_item is None:
+                return
+
+            rec_expire_at = heap_item[0]
+            key = heap_item[1]
+
+            if rec_expire_at > current:
+                return # 미래의 기록이다
+            else:
+                del_heap = self._expiry_heap.pop() # 일단 값을 받아두긴 하는데, 쓰지는 않을듯
+
+            lru_node = self._data.get(key)
+            if lru_node is None:
+                continue # 이미 삭제된 키의 오래된 힙 기록이다
+            
+            current_expire_at = lru_node.data.expire_at
+            if rec_expire_at != current_expire_at:
+                continue # TTL을 다시 설정하기 전의 오래된 힙 기록이다
+            else:
+                self.del_key(key)
+
     def _evict_lru(self) -> bool:
         """가장 오래 사용하지 않은 키 하나를 제거하고 성공 여부를 반환한다."""
         lru_tail = self._lru.tail
