@@ -136,7 +136,14 @@ def run_repl() -> None:
     store = Store()
 
     while True:
-        line = input("mini-redis> ")
+        try:
+            line = input("mini-redis> ")
+        except KeyboardInterrupt:
+            print()
+            break
+        except EOFError:
+            print()
+            break
 
         try:
             tokens = parse_input(line)
