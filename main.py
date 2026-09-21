@@ -130,3 +130,26 @@ def execute_command(store: Store, tokens: List[str]) -> Optional[str]:
         return f"(integer) {store.ttl(tokens[1])}"
 
     return f"(error) ERR unknown command '{tokens[0]}'"
+
+def run_repl() -> None:
+    """프롬프트에서 입력을 받아 명령 실행과 결과 출력을 반복한다."""
+    store = Store()
+
+    while True:
+        line = input("mini-redis> ")
+
+        try:
+            tokens = parse_input(line)
+        except ValueError:
+            print("(error) ERR syntax error")
+            continue
+
+        if not tokens:
+            continue
+
+        if tokens[0].upper() in ("EXIT", "QUIT"):
+            break
+
+        result = execute_command(store, tokens)
+        if result is not None:
+            print(result)
