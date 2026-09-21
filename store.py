@@ -1,18 +1,22 @@
 # 자료구조를 조합해 키·값 저장소와 LRU·메모리·TTL 관리를 구현한다.
 
+import time
+
 from typing import Optional
 
 from hash_map import HashMap
 from doubly_linked_list import DoublyLinkedList
+from min_heap import MinHeap
 
 
 class StoreEntry:
-    """문자열 키와 값을 묶는 저장소 엔트리. LRU 리스트 노드의 data에 보관된다."""
+    """문자열 키·값과 현재 만료 시각을 묶는 저장소 엔트리. LRU Node의 data에 보관된다."""
 
     def __init__(self, key: str, value: str) -> None:
         """전달받은 키와 값을 보관한다."""
         self.key = key
         self.value = value
+        self.expire_at: Optional[float] = None
 
 
 class Store:
@@ -25,6 +29,7 @@ class Store:
         self._used_memory = 0
         self._maxmemory = 0
         self._evicted_keys = 0
+        self._expiry_heap = MinHeap()
 
     def _entry_size(self, key: str, value: str) -> int:
         """키와 값의 UTF-8 바이트 수 합계를 반환한다."""
@@ -47,6 +52,21 @@ class Store:
     def info_memory(self) -> tuple[int, int, int]:
         """현재 사용량, 메모리 제한, 제거된 키 수를 순서대로 반환한다."""
         return self._used_memory, self._maxmemory, self._evicted_keys
+
+    def expire(self, key: str, seconds: int) -> bool:
+        """키에 만료 시간을 설정하면 True를, 키가 없으면 False를 반환한다."""
+        lnode = self._data.get(key)
+        if lnode is None:
+            return False
+
+        if seconds <= 0:
+            if self.del_key(key) is True:
+                return True
+        else:
+            timer = time.time() + seconds
+            lnode.data.expire_at = timer
+            self._expiry_heap.push((timer, key))
+            return True
 
     def _evict_lru(self) -> bool:
         """가장 오래 사용하지 않은 키 하나를 제거하고 성공 여부를 반환한다."""
