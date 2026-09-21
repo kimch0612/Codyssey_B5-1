@@ -325,29 +325,29 @@ LRU 갱신 의무는 원문에 명시된 성공한 `SET`·`GET`에 적용한다.
 ### 10-1. 입력 해석
 
 - [x] D7의 입력 처리 범위를 기록한다.
-- [ ] 입력을 명령과 인자로 나누고, 각 필수 명령에서 인자 누락·초과를 검사한다.
-- [ ] `CONFIG SET maxmemory bytes`, `INFO memory`의 복합 명령 형태를 해석한다.
+- [x] 입력을 명령과 인자로 나누고, 각 필수 명령에서 인자 누락·초과를 검사한다.
+- [x] `CONFIG SET maxmemory bytes`, `INFO memory`의 복합 명령 형태를 해석한다.
 - [x] 값은 최소한 공백 없는 값 또는 큰따옴표로 감싼 값 중 한 방식을 지원한다. 따옴표 방식을 선택한 경우 구분용 따옴표와 저장할 값 자체를 구분한다.
-- [ ] 정수로 받는 인자에서 정수 변환 실패와 허용 범위 위반을 구분하고, 해당 입력 오류를 표준 에러로 표시한다. `maxmemory`의 음수는 허용하지 않는다.
+- [x] 정수로 받는 인자에서 정수 변환 실패와 허용 범위 위반을 구분하고, 해당 입력 오류를 표준 에러로 표시한다. `maxmemory`의 음수는 허용하지 않는다.
 
 ### 10-2. 명령별 결과 출력
 
 - [x] `SET key value`: 성공 시 `OK`, 저장 불가능한 단일 엔트리에는 OOM 에러를 출력한다.
 - [x] `GET key`: 유효한 키는 `"value"`, 없거나 만료된 키는 `(nil)`을 출력한다.
 - [x] `DEL key`: 삭제 성공 시 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
-- [ ] `EXISTS key`: 존재하면 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
-- [ ] `DBSIZE`: 현재 키 수를 `(integer) N`으로 출력한다.
-- [ ] `KEYS`: 전체 키를 배열 형태로 출력하고, 비어 있으면 `(empty array)` 같은 방식으로 표현한다. 특정 정렬 순서를 검사하지 않는다.
-- [ ] `CONFIG SET maxmemory bytes`: 설정 성공 시 `OK`를 출력한다.
-- [ ] `INFO memory`: `used_memory:<number>`, `maxmemory:<number>`, `evicted_keys:<number>`를 최소한 포함한다.
-- [ ] `EXPIRE key seconds`: 정상 설정 시 `(integer) 1`, 없는 키는 `(integer) 0`을 출력한다. 0 이하 seconds 결과는 D4와 일치한다.
-- [ ] `TTL key`: 남은 초, -1, -2를 각각 `(integer) N` 형식으로 출력한다.
+- [x] `EXISTS key`: 존재하면 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
+- [x] `DBSIZE`: 현재 키 수를 `(integer) N`으로 출력한다.
+- [x] `KEYS`: 전체 키를 배열 형태로 출력하고, 비어 있으면 `(empty array)` 같은 방식으로 표현한다. 특정 정렬 순서를 검사하지 않는다.
+- [x] `CONFIG SET maxmemory bytes`: 설정 성공 시 `OK`를 출력한다.
+- [x] `INFO memory`: `used_memory:<number>`, `maxmemory:<number>`, `evicted_keys:<number>`를 최소한 포함한다.
+- [x] `EXPIRE key seconds`: 정상 설정 시 `(integer) 1`, 없는 키는 `(integer) 0`을 출력한다. 0 이하 seconds 결과는 D4와 일치한다.
+- [x] `TTL key`: 남은 초, -1, -2를 각각 `(integer) N` 형식으로 출력한다.
 
 ### 10-3. 표준 에러와 반복 실행
 
 - [x] 알 수 없는 명령에 `(error) ERR unknown command '<cmd>'` 형식으로 응답한다.
-- [ ] 인자 개수 오류에 `(error) ERR wrong number of arguments for '<cmd>' command` 형식으로 응답한다.
-- [ ] 정수 파싱 실패에 `(error) ERR value is not an integer or out of range` 형식으로 응답한다.
+- [x] 인자 개수 오류에 `(error) ERR wrong number of arguments for '<cmd>' command` 형식으로 응답한다.
+- [x] 정수 파싱 실패에 `(error) ERR value is not an integer or out of range` 형식으로 응답한다.
 - [x] OOM에 `(error) OOM command not allowed when used_memory > 'maxmemory'` 형식으로 응답한다.
 - [ ] 실행 진입점에서 `mini-redis>` 프롬프트와 입력 → 파싱 → 실행 → 출력 반복을 시작한다.
 - [ ] 같은 실행 세션에서 이전 명령으로 저장한 데이터·설정·LRU·TTL 상태가 유지된다.

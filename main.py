@@ -47,4 +47,86 @@ def execute_command(store: Store, tokens: List[str]) -> Optional[str]:
 
         return "(integer) 0"
 
+    elif command == "EXISTS":
+        if len(tokens) != 2:
+            return "(error) ERR wrong number of arguments for 'exists' command"
+
+        exists = store.exists(tokens[1])
+        if exists:
+            return "(integer) 1"
+
+        return "(integer) 0"
+
+    elif command == "DBSIZE":
+        if len(tokens) != 1:
+            return "(error) ERR wrong number of arguments for 'dbsize' command"
+
+        return f"(integer) {store.dsize()}"
+
+    elif command == "KEYS":
+        if len(tokens) != 1:
+            return "(error) ERR wrong number of arguments for 'keys' command"
+
+        keys = store.keys()
+        if not keys:
+            return "(empty array)"
+
+        lines = []
+        for index, key in enumerate(keys, start=1):
+            lines.append(f'{index}. "{key}"')
+
+        return "\n".join(lines)
+
+    elif command == "CONFIG":
+        if len(tokens) != 4:
+            return "(error) ERR wrong number of arguments for 'config' command"
+
+        if tokens[1].upper() != "SET" or tokens[2].upper() != "MAXMEMORY":
+            return "(error) ERR syntax error"
+
+        try:
+            maxmemory = int(tokens[3])
+        except ValueError:
+            return "(error) ERR value is not an integer or out of range"
+
+        if not store.set_maxmemory(maxmemory):
+            return "(error) ERR value is not an integer or out of range"
+
+        return "OK"
+
+    elif command == "INFO":
+        if len(tokens) != 2:
+            return "(error) ERR wrong number of arguments for 'info' command"
+
+        if tokens[1].upper() != "MEMORY":
+            return "(error) ERR syntax error"
+
+        used_memory, maxmemory, evicted_keys = store.info_memory()
+        return (
+            f"used_memory:{used_memory}\n"
+            f"maxmemory:{maxmemory}\n"
+            f"evicted_keys:{evicted_keys}"
+        )
+
+    elif command == "EXPIRE":
+        if len(tokens) != 3:
+            return "(error) ERR wrong number of arguments for 'expire' command"
+
+        try:
+            seconds = int(tokens[2])
+        except ValueError:
+            return "(error) ERR value is not an integer or out of range"
+
+        expired = store.expire(tokens[1], seconds)
+        if expired:
+            return "(integer) 1"
+
+        return "(integer) 0"
+
+    elif command == "TTL":
+        if len(tokens) != 2:
+            return "(error) ERR wrong number of arguments for 'ttl' command"
+
+        return f"(integer) {store.ttl(tokens[1])}"
+
     return f"(error) ERR unknown command '{tokens[0]}'"
