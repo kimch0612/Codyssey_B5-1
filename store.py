@@ -24,6 +24,7 @@ class Store:
         self._lru = DoublyLinkedList()
         self._used_memory = 0
         self._maxmemory = 0
+        self._evicted_keys = 0
 
     def _entry_size(self, key: str, value: str) -> int:
         """키와 값의 UTF-8 바이트 수 합계를 반환한다."""
@@ -42,6 +43,19 @@ class Store:
             self._maxmemory = maxmemory
 
         return True
+
+    def _evict_lru(self) -> bool:
+        """가장 오래 사용하지 않은 키 하나를 제거하고 성공 여부를 반환한다."""
+        lru_tail = self._lru.tail
+        if lru_tail is None:
+            return False
+
+        if self.del_key(lru_tail.data.key) is True:
+            self._evicted_keys += 1
+            return True
+        else:
+            # _evict_lru와 del_key에서 False가 나올 분기를 미리 처리하므로, 이 분기로 빠질 일은 없다
+            return False
 
     def set(self, key: str, value: str) -> bool:
         """키에 값을 저장하면 True를, 단일 엔트리 OOM이면 False를 반환한다."""
