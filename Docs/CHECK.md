@@ -332,7 +332,7 @@ LRU 갱신 의무는 원문에 명시된 성공한 `SET`·`GET`에 적용한다.
 
 ### 10-2. 명령별 결과 출력
 
-- [ ] `SET key value`: 성공 시 `OK`, 저장 불가능한 단일 엔트리에는 OOM 에러를 출력한다.
+- [x] `SET key value`: 성공 시 `OK`, 저장 불가능한 단일 엔트리에는 OOM 에러를 출력한다.
 - [ ] `GET key`: 유효한 키는 `"value"`, 없거나 만료된 키는 `(nil)`을 출력한다.
 - [ ] `DEL key`: 삭제 성공 시 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
 - [ ] `EXISTS key`: 존재하면 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
@@ -345,10 +345,10 @@ LRU 갱신 의무는 원문에 명시된 성공한 `SET`·`GET`에 적용한다.
 
 ### 10-3. 표준 에러와 반복 실행
 
-- [ ] 알 수 없는 명령에 `(error) ERR unknown command '<cmd>'` 형식으로 응답한다.
+- [x] 알 수 없는 명령에 `(error) ERR unknown command '<cmd>'` 형식으로 응답한다.
 - [ ] 인자 개수 오류에 `(error) ERR wrong number of arguments for '<cmd>' command` 형식으로 응답한다.
 - [ ] 정수 파싱 실패에 `(error) ERR value is not an integer or out of range` 형식으로 응답한다.
-- [ ] OOM에 `(error) OOM command not allowed when used_memory > 'maxmemory'` 형식으로 응답한다.
+- [x] OOM에 `(error) OOM command not allowed when used_memory > 'maxmemory'` 형식으로 응답한다.
 - [ ] 실행 진입점에서 `mini-redis>` 프롬프트와 입력 → 파싱 → 실행 → 출력 반복을 시작한다.
 - [ ] 같은 실행 세션에서 이전 명령으로 저장한 데이터·설정·LRU·TTL 상태가 유지된다.
 - [ ] 처리한 명령 오류를 출력한 후 다음 명령을 받을 수 있다.
