@@ -1,0 +1,832 @@
+B5-1 Mini Redis 심화 설명과 질의응답
+작성 기준: Subject.txt / Evaluate.txt / 현재 구현 (Git 16ce6e5)
+기준 폴더: /Users/charles/Documents/Dev/Codyssey/Subject5/B5-1
+기준일: 2026-09-21. 코드가 바뀌면 함수 이름으로 다시 찾아 라인을 확인한다.
+
+script2.txt — script.txt P01~P12의 공부용 확장 자료
+
+이 문서는 발표 중 전부 읽는 대본이 아니다. 각 P 번호의 개념, 실제 값과 타입,
+객체 상태 변화, 예상 질문을 복습하는 자료다. 현재 구현과 조건 변경 아이디어를 구분한다.
+
+================================================================
+[P01] 범위와 전체 구조
+================================================================
+대응 대본: script.txt [P01]
+시연: 없음
+평가 연결: 1-1, 3-1
+코드 확인:
+  main.py:134 run_repl()
+  store.py:12 StoreEntry
+  store.py:22 Store
+
+1. 파일별 책임
+
+main.py
+  입력 한 줄을 파싱하고 명령을 구분해 Store를 호출한 뒤 Redis 스타일 문자열을 출력한다.
+
+store.py
+  문자열 데이터, LRU 순서, 메모리 제한, TTL 정책을 한곳에서 일관되게 갱신한다.
+
+hash_map.py
+  직접 만든 해시 함수, 체이닝, 로드 팩터와 2배 확장을 담당한다.
+
+doubly_linked_list.py
+  Node와 양방향 연결, 끝점 삽입·삭제, 지정 Node 삭제·이동을 담당한다.
+
+min_heap.py
+  `(expire_at, key)` 중 가장 빠른 만료 후보를 루트에 유지한다.
+
+2. Store의 초기 상태
+
+```text
+_data: HashMap                  # key → LRU Node
+_lru: DoublyLinkedList          # head=MRU, tail=LRU
+_used_memory: int = 0
+_maxmemory: int = 0             # 무제한
+_evicted_keys: int = 0
+_expiry_heap: MinHeap
+```
+
+3. 구현 범위
+
+필수: 문자열 6개 명령, 메모리 2개 명령, TTL 2개 명령, REPL과 표준 오류.
+제외: 네트워크, 파일 영속성, Redis 복잡 자료형, 멀티스레딩, 보너스 과제.
+
+확인 질문: 실제 Redis와 같은 서버인가?
+답: 아니다. Redis의 핵심 자료구조와 정책을 학습하기 위한 단일 프로세스 메모리 CLI다.
+
+한 줄 답변:
+“입출력은 main, 통합 정책은 Store, 기본 자료구조는 세 독립 모듈이 맡습니다.”
+
+================================================================
+[P02] REPL과 기본 문자열 명령
+================================================================
+대응 대본: script.txt [P02]
+시연: cli.txt D03~D14
+평가 연결: 1-1, 1-5
+코드 확인:
+  main.py:10 parse_input()
+  main.py:14 execute_command()
+  main.py:134 run_repl()
+
+1. 호출 흐름부터 보기
+
+```text
+input('mini-redis> ')
+  → parse_input(line)
+  → shlex.split(line)
+  → execute_command(store, tokens)
+  → Store의 공개 메서드
+  → Redis 스타일 결과 문자열
+  → print(result)
+```
+
+2. 실제 값과 타입
+
+입력: `SET greeting "안녕 세상"`
+
+```text
+line: str = 'SET greeting "안녕 세상"'
+tokens: list[str] = ['SET', 'greeting', '안녕 세상']
+command: str = 'SET'
+tokens[1]: str = 'greeting'
+tokens[2]: str = '안녕 세상'
+stored: bool = True
+result: str = 'OK'
+```
+
+큰따옴표는 shlex가 공백 포함 값을 하나의 토큰으로 해석하기 위한 문법이다.
+StoreEntry.value에는 따옴표 없는 `안녕 세상`이 저장된다.
+
+3. 상태의 생명주기
+
+run_repl은 while 밖에서 Store를 한 번 생성한다. SET 뒤 다음 GET이 같은 객체를 보게 된다.
+EXIT/QUIT 또는 인터럽트로 함수가 끝나면 그 Store를 파일에 저장하지 않는다.
+
+4. 명령과 반환 의미
+
+SET → OK 또는 OOM
+GET → `"value"` 또는 `(nil)`
+DEL/EXISTS → `(integer) 1` 또는 `(integer) 0`
+DBSIZE → `(integer) N`
+KEYS → 번호 목록 또는 `(empty array)`
+
+확인 질문: 값 `0`이면 EXISTS가 0인가?
+답: 아니다. 문자열 값의 내용이 아니라 HashMap에 key가 존재하는지를 검사한다.
+
+확인 질문: KEYS 순서를 발표에서 고정해도 되는가?
+답: 안 된다. 요구사항은 정렬과 순서를 보장하지 않는다. 포함된 키를 확인해야 한다.
+
+한 줄 답변:
+“REPL은 Store 하나를 유지하며 shlex로 값을 보존하고 명령 결과만 Redis 스타일로 변환합니다.”
+
+================================================================
+[P03] 이중 연결 리스트와 체이닝 해시맵
+================================================================
+대응 대본: script.txt [P03]
+시연: 없음
+평가 연결: 2-1, 2-2, 2-3
+코드 확인:
+  doubly_linked_list.py:5 Node
+  doubly_linked_list.py:23 insert_front()
+  doubly_linked_list.py:87 remove_node()
+  doubly_linked_list.py:112 move_to_front()
+  hash_map.py:26 _hash()
+  hash_map.py:38 _find_node()
+
+1. Node의 세 필드
+
+```text
+Node.data: object
+Node.prev: 이전 Node 또는 None
+Node.next: 다음 Node 또는 None
+```
+
+리스트는 `head`와 `tail`을 별도로 들고 있어 맨 앞과 맨 뒤에 즉시 접근한다.
+
+2. remove_node가 O(1)인 이유
+
+중간 노드 B를 알고 있다고 하자.
+
+```text
+A ⇄ B ⇄ C
+```
+
+```text
+A.next = C
+C.prev = A
+B.prev = None
+B.next = None
+```
+
+노드 수와 관계없이 정해진 참조 몇 개만 바꾼다. 단, B를 찾는 비용까지 포함하면 다르다.
+LRU에서는 HashMap이 B 참조를 제공하므로 리스트를 찾기 위해 순회하지 않는다.
+
+3. 해시 함수 값 추적
+
+capacity=8, key='ab'라고 하자.
+
+```text
+초기 result = 0
+'a': (0 * 37 + ord('a')) % 8
+'b': (이전 result * 37 + ord('b')) % 8
+```
+
+각 단계에서 나머지를 취해 값 범위를 버킷 index 안으로 제한한다. 이전 결과에 37을 곱하므로
+단순 문자 합과 달리 `ab`와 `ba`의 순서가 계산에 반영된다.
+
+4. 체이닝의 객체
+
+```text
+_buckets[index]: DoublyLinkedList
+bucket Node.data: HashEntry
+HashEntry.key: str
+HashEntry.value: object
+```
+
+충돌한 두 키는 같은 버킷 리스트의 서로 다른 Node에 저장된다. `_find_node()`가 `next`로
+이동하며 `current.data.key`를 실제 key와 비교한다.
+
+5. 복잡도
+
+해시 계산에 key 길이를 L이라 하면 O(L)이다. 보통 key 길이를 제한된 값으로 보면 평균 조회를
+O(1)이라고 표현한다. 충돌이 집중된 최악에는 체인 길이만큼 O(n)이 될 수 있다.
+
+확인 질문: 버킷 리스트 Node와 LRU Node가 같은 객체인가?
+답: 아니다. 같은 Node 클래스를 재사용하지만 각 리스트에서 별도로 생성한 객체다.
+
+한 줄 답변:
+“충돌은 버킷 연결 리스트로 보존하고, 조회 시 해시 index 뒤 실제 문자열 key를 다시 비교합니다.”
+
+================================================================
+[P04] 로드 팩터 확장과 최소 힙
+================================================================
+대응 대본: script.txt [P04]
+시연: 없음
+평가 연결: 2-4, 3-3
+코드 확인:
+  hash_map.py:51 _load_factor()
+  hash_map.py:55 _resize()
+  hash_map.py:68 put()
+  min_heap.py:11 _heapify_up()
+  min_heap.py:33 _heapify_down()
+
+1. 확장 경계
+
+```text
+capacity = 8
+size = 6 → 6/8 = 0.75 → 확장 안 함
+size = 7 → 7/8 = 0.875 → 16으로 확장
+```
+
+조건은 `>= 0.75`가 아니라 `> 0.75`다. 기존 key 갱신은 size를 늘리지 않으므로 확장을
+검사할 새 엔트리 증가가 없다.
+
+2. 왜 재해싱이 필요한가
+
+index 공식의 `% self._capacity`가 8에서 16으로 바뀐다. 예전 index의 엔트리를 같은 위치에
+그대로 두면 새 `_hash()`가 찾는 버킷과 저장 위치가 달라질 수 있다. 그래서 old_buckets의
+각 HashEntry를 새 capacity로 다시 계산해 새 버킷에 넣는다.
+
+3. 최소 힙의 작은 예
+
+만료 시각만 단순 숫자로 쓰면:
+
+```text
+push (30, 'c')
+push (10, 'a')
+push (20, 'b')
+```
+
+배열 루트에는 `(10, 'a')`가 온다. 실제 코드가 Node 트리를 만드는 것은 아니며 배열 index로
+완전 이진 트리의 부모와 자식을 계산한다.
+
+4. TTL에 힙이 맞는 이유
+
+필요한 질문은 “다음으로 만료할 후보가 무엇인가?”다. 최소 힙은 peek O(1), 추가와 제거
+O(log n)으로 이 질문을 지원한다. 모든 StoreEntry를 매번 훑으면 한 번 검사에 O(n)이다.
+
+확인 질문: 힙에 있는 모든 항목이 현재 유효한 TTL인가?
+답: 아니다. TTL 재설정과 삭제 때문에 오래된 후보가 남을 수 있으며 StoreEntry와 비교해 거른다.
+
+한 줄 답변:
+“확장 때는 capacity가 바뀌므로 전체를 재해싱하고, TTL은 최소 힙 루트로 가장 이른 후보를 찾습니다.”
+
+================================================================
+[P05] HashMap과 리스트를 결합한 LRU
+================================================================
+대응 대본: script.txt [P05]
+시연: cli.txt M02~M07
+평가 연결: 3-1, 3-2, 3-5
+코드 확인:
+  store.py:153 set()
+  store.py:181 get()
+  doubly_linked_list.py:112 move_to_front()
+
+1. 왜 두 자료구조가 모두 필요한가
+
+이중 연결 리스트만 사용:
+  MRU/LRU 순서는 유지하지만 key의 Node를 찾으려면 앞에서부터 O(n) 순회한다.
+
+HashMap만 사용:
+  key 조회는 평균 O(1)이지만 가장 오래 사용하지 않은 key의 순서를 알 수 없다.
+
+결합:
+  HashMap으로 LRU Node를 평균 O(1)에 찾고, 리스트에서 같은 Node를 O(1)에 이동·삭제한다.
+
+2. 실제 객체 흐름 — SET a A
+
+```text
+key: str = 'a'
+value: str = 'A'
+entry: StoreEntry = StoreEntry('a', 'A')
+lru_node: Node = _lru.insert_front(entry)
+_data.put('a', lru_node)
+```
+
+`insert_front(entry)`는 Node를 새로 만들어 반환한다. 이미 만든 Node를 data로 넘기지 않으므로
+Node 안에 Node가 중첩되지 않는다.
+
+3. LRU 상태 변화
+
+```text
+SET a A → [a]
+SET b B → [b, a]
+SET c C → [c, b, a]
+GET a   → [a, c, b]
+```
+
+왼쪽 head가 MRU, 오른쪽 tail이 LRU다. GET missing은 순서를 바꾸지 않는다.
+
+4. 기존 키 SET
+
+HashMap에서 기존 lru_node를 얻어 `lru_node.data.value`만 바꾼다. 새 Node를 만들지 않으므로
+키 수와 LRU Node 수가 일치한다. TTL은 None으로 초기화하고 같은 Node를 head로 이동한다.
+
+확인 질문: 왜 HashEntry.value에 StoreEntry를 바로 저장하지 않는가?
+답: LRU 이동에 필요한 정확한 Node 참조가 필요하기 때문이다. StoreEntry만 있으면 리스트에서
+그 객체를 담은 Node를 다시 찾아야 한다.
+
+한 줄 답변:
+“HashMap은 위치를 찾고 리스트는 순서를 바꾸므로, 조회와 갱신을 평균 O(1)에 결합합니다.”
+
+================================================================
+[P06] 메모리 계산과 LRU eviction
+================================================================
+대응 대본: script.txt [P06]
+시연: cli.txt M08~M14
+평가 연결: 1-2, 1-3, 3-4
+코드 확인:
+  store.py:34 _entry_size()
+  store.py:140 _evict_lru()
+  store.py:153 set()
+
+1. 공식 계산
+
+```text
+entry_size(key, value)
+= len(key.encode('utf-8')) + len(value.encode('utf-8'))
+```
+
+`a`와 `A`는 각각 1바이트라 합계 2다. `한`은 UTF-8에서 3바이트다. Python 문자열의
+문자 개수 `len('한') == 1`과 UTF-8 바이트 수 `len('한'.encode('utf-8')) == 3`을 구분한다.
+
+2. 갱신 규칙
+
+새 key SET: 새 엔트리 크기를 더한다.
+기존 key SET: 새 크기에서 예전 크기를 뺀 차이만 반영한다.
+DEL/TTL 만료/LRU 제거: 삭제한 엔트리 크기를 뺀다.
+
+3. 6바이트 예시 전체 추적
+
+```text
+명령       LRU(MRU→LRU)   used  evicted
+SET a A    a                2       0
+SET b B    b,a              4       0
+SET c C    c,b,a            6       0
+GET a      a,c,b            6       0
+SET d D    d,a,c,b          8       0
+evict b    d,a,c            6       1
+```
+
+4. 단일 엔트리 OOM과 전체 초과의 차이
+
+단일 엔트리 자체가 제한 초과:
+  저장 전에 False. 기존 데이터를 제거해서 자리를 만들지 않는다.
+
+단일 엔트리는 제한 이하이나 전체 합이 초과:
+  새 값을 저장한 뒤 tail부터 여러 키를 제거해 제한 이하로 만든다.
+
+`SET e EEEEE`는 크기 6이라 제한 6에 들어간다. 기존 used 6에 추가하면 12가 되므로 기존
+키들을 제거하고 e만 남는다.
+
+5. evicted_keys의 의미
+
+메모리 제한 때문에 `_evict_lru()`로 정상 제거한 경우만 증가한다. 사용자의 DEL과 TTL 만료는
+삭제이지만 eviction 통계에는 포함하지 않는다.
+
+확인 질문: maxmemory 0이면 모든 SET이 OOM인가?
+답: 아니다. 0은 과제에서 정한 무제한 값이다.
+
+확인 질문: CONFIG로 제한을 낮추는 순간 제거하는가?
+답: 현재 구현은 아니다. 다음 성공한 SET 뒤 제한을 검사한다. 원문이 시점을 고정하지 않아 택한 정책이다.
+
+한 줄 답변:
+“SET 뒤 payload 합이 제한을 넘으면 tail을 삭제하고 크기를 빼며, 제한 이하가 될 때까지 반복합니다.”
+
+================================================================
+[P07] EXPIRE, TTL과 지연 삭제
+================================================================
+대응 대본: script.txt [P07]
+시연: cli.txt T01~T10
+평가 연결: 1-4, 3-3
+코드 확인:
+  store.py:58 expire()
+  store.py:76 ttl()
+  store.py:97 _purge_expired()
+
+1. 두 장소의 정보
+
+StoreEntry.expire_at:
+  이 key에 현재 유효한 만료 시각 하나.
+
+MinHeap item `(expire_at, key)`:
+  해당 시각에 검사해야 한다는 후보 기록. 과거 기록일 수도 있다.
+
+2. EXPIRE 실제 값
+
+현재 시각이 1000.25이고 `EXPIRE temp 10`이면:
+
+```text
+seconds: int = 10
+timer: float = 1010.25
+lnode.data.expire_at = 1010.25
+_expiry_heap.push((1010.25, 'temp'))
+```
+
+3. TTL 결과
+
+키 없음 또는 만료 삭제: -2
+키 존재, expire_at None: -1
+키 존재, 미래 만료 시각: int(expire_at - now)
+
+1010.25 - 1000.40은 9.85이고 int 결과는 9다. 반올림이 아니라 소수 부분을 버린다.
+
+4. 왜 지연 삭제인가
+
+TTL을 다시 설정했을 때 이전 튜플이 힙 중간 어디에 있는지 찾으려면 추가 위치 구조나 O(n)
+탐색이 필요하다. 현재 구현은 새 튜플을 추가하고, 과거 튜플이 루트에 도달할 때 실제
+StoreEntry.expire_at과 같은지만 비교한다.
+
+```text
+기록 시각 == 현재 expire_at → 유효한 만료, key 삭제
+기록 시각 != 현재 expire_at → 오래된 기록, 튜플만 폐기
+key 자체가 없음              → 오래된 기록, 튜플만 폐기
+```
+
+5. SET과 TTL
+
+기존 key를 SET하면 `expire_at = None`으로 만든다. 이전 힙 기록이 도착해도 None과 시각이
+다르므로 새 값을 삭제하지 않는다.
+
+확인 질문: 힙에서 key를 바로 삭제하지 않으면 TTL 효력이 남는가?
+답: 아니다. 효력의 기준은 현재 StoreEntry다. 힙의 오래된 튜플은 나중에 무시된다.
+
+한 줄 답변:
+“StoreEntry가 현재 TTL의 진실이고, 힙은 가장 이른 검사 후보를 제공하며 오래된 기록은 비교로 거릅니다.”
+
+================================================================
+[P08] 유효한 키와 GET 전체 흐름
+================================================================
+대응 대본: script.txt [P08]
+시연: cli.txt T11~T15
+평가 연결: 3-4, 3-5
+코드 확인:
+  store.py:123 _expire_if_needed()
+  store.py:181 get()
+  store.py:195 del_key()
+
+1. 평가 3-5의 정확한 순서
+
+```text
+Store.get(key)
+  1) _expire_if_needed(key)
+  2) 만료됐으면 데이터/LRU/메모리에서 삭제하고 None
+  3) HashMap.get(key)
+  4) 없으면 None
+  5) 있으면 move_to_front(lru_node)
+  6) lru_node.data.value 반환
+```
+
+main.py가 None을 `(nil)`로, 문자열을 `"value"`로 바꾼다.
+
+2. 객체 상태 예시
+
+실행 전:
+
+```text
+_data에 'short' 존재
+short_node.data.value == 'S'
+short_node.data.expire_at <= time.time()
+_lru 안에 short_node 존재
+_used_memory에 short 크기 포함
+```
+
+`GET short` 뒤:
+
+```text
+_data에 'short' 없음
+_lru에 short_node 없음
+_used_memory에서 short 크기 차감
+_evicted_keys 변화 없음
+반환 None → CLI (nil)
+```
+
+3. 왜 만료 삭제에서 DEL 결과가 0일 수 있는가
+
+`del_key()`는 삭제 전 expire_at이 이미 현재 이하인지 확인한다. 물리적 삭제와 메모리 감소는
+수행하지만, CLI 관점에서는 이미 만료되어 존재하지 않는 key처럼 취급하기 위해 False를 반환한다.
+
+4. key 하나 검사와 전체 정리
+
+GET/SET/EXISTS/EXPIRE/TTL:
+  대상 key 하나를 `_expire_if_needed()`로 확인한다.
+
+DBSIZE/KEYS/INFO memory:
+  저장소 전체를 보고하므로 `_purge_expired()`로 힙의 도래 후보를 정리한다.
+
+확인 질문: 만료된 key GET이 LRU 앞으로 이동했다가 삭제되는가?
+답: 아니다. 만료 검사가 먼저이고 True면 즉시 None을 반환한다.
+
+한 줄 답변:
+“GET은 TTL 삭제를 먼저 끝낸 뒤 살아 있는 값에만 LRU 갱신을 적용합니다.”
+
+================================================================
+[P09] 오류 처리와 종료
+================================================================
+대응 대본: script.txt [P09]
+시연: cli.txt E11~E20, X01~X02
+평가 연결: 1-5
+코드 확인:
+  main.py:14 execute_command()
+  main.py:134 run_repl()
+
+1. 오류가 처리되는 위치
+
+파싱 오류:
+  `shlex.split()`의 닫히지 않은 따옴표 → run_repl이 syntax error 출력.
+
+명령 형태 오류:
+  인자 수, CONFIG/INFO 하위 단어 → execute_command가 오류 문자열 반환.
+
+정수 오류:
+  maxmemory/seconds의 int 변환 실패, maxmemory 음수 → 정수 범위 오류.
+
+정책 오류:
+  단일 엔트리 제한 초과 → Store.set False → OOM 문자열.
+
+알 수 없는 명령:
+  마지막 분기에서 사용자가 입력한 첫 토큰을 포함한 오류 문자열.
+
+2. 왜 오류 뒤에도 상태가 유지되는가
+
+예상한 입력 오류는 결과 문자열이나 좁은 ValueError 처리로 끝난다. while 반복과 Store 객체는
+그대로이므로 다음 명령을 받는다. 상태 변경 전에 검사한 오류는 이전 데이터를 보존한다.
+
+3. 인터럽트
+
+input 호출만 KeyboardInterrupt와 EOFError로 감싼다. 줄바꿈 후 반복을 종료하므로 traceback이
+노출되지 않는다. Ctrl+Z는 Unix 셸의 작업 중지이므로 프로그램의 정상 종료 처리와 다르다.
+
+4. 넓은 except를 쓰지 않은 이유
+
+과제는 모든 내부 프로그래밍 오류를 숨기라고 요구하지 않는다. 예상 가능한 사용자 입력 오류만
+표준 형식으로 처리하고, 예상하지 못한 버그까지 무조건 삼키지 않는 편이 디버깅에 유리하다.
+
+확인 질문: `exit now`는 인자 오류인가?
+답: 현재 run_repl은 첫 토큰만 보고 종료한다. Subject는 EXIT/QUIT 인자 검증을 별도로 요구하지 않는다.
+
+한 줄 답변:
+“예상한 입력 경계는 해당 단계에서 처리해 REPL을 유지하고, 입력 인터럽트만 정상 종료로 바꿉니다.”
+
+================================================================
+[P10] LRU를 LFU로 바꾼다면
+================================================================
+대응 대본: script.txt [P10]
+시연: 없음 — 현재 구현이 아니라 조건 변경 설계
+평가 연결: 4-1
+공부 위치: Study.md 12.1절, README.md ‘LRU를 LFU로 바꾼다면’
+
+1. 정책 차이
+
+LRU: 마지막으로 사용한 지 가장 오래된 key 제거.
+LFU: 사용 빈도가 가장 낮은 key 제거.
+
+LFU에는 동률 정책도 필요하다. 여기서는 같은 빈도 안에서 가장 오래 사용하지 않은 key를
+제거하는 LRU 동률 정책을 택할 수 있다.
+
+2. frequency만 추가한 단순 설계
+
+StoreEntry에 frequency를 넣고 GET마다 1 증가시킨다. 갱신은 쉽지만 eviction 때 모든
+엔트리를 순회해 최소 frequency를 찾아야 하므로 O(n)이다.
+
+3. 평균 O(1)을 목표로 한 구조
+
+```text
+key_map: key → LFU Node 또는 LFUEntry
+frequency_buckets: frequency → DoublyLinkedList
+min_frequency: 현재 비어 있지 않은 최소 빈도
+```
+
+각 빈도 리스트의 head는 최근 사용, tail은 오래된 사용으로 정하면 동률 LRU가 가능하다.
+
+4. 상태 갱신
+
+새 SET:
+  frequency=1로 빈도 1 리스트 head에 삽입, min_frequency=1.
+
+GET / 기존 key SET:
+  현재 f 리스트에서 Node 제거 → f+1 리스트 head에 삽입 → 값 갱신.
+
+eviction:
+  min_frequency 리스트의 tail 제거 → key_map과 메모리·TTL도 함께 정리.
+
+DEL / TTL 만료:
+  key_map, 해당 빈도 리스트, 메모리, TTL의 현재 상태를 함께 정리.
+
+5. min_frequency의 함정
+
+접근 때문에 f 리스트가 비면 방금 이동한 f+1로 올릴 수 있다. 하지만 임의 DEL이나 TTL 만료로
+현재 최소 버킷이 비면 다음 빈도가 꼭 f+1이라는 보장이 없다. 빈도 숫자를 탐색하거나 비어 있지
+않은 빈도 버킷끼리 정렬된 연결을 관리해야 한다.
+
+6. 노화 정책
+
+누적 횟수만 쓰면 과거에 많이 쓰인 key가 최근에 사용되지 않아도 오래 남는다. 주기적 절반 감소,
+접근 시 지연 감쇠, 상한 또는 로그형 카운터 같은 정책으로 최근성을 일부 반영할 수 있다.
+
+7. 비용 비교
+
+```text
+frequency만 저장: 갱신 O(1), 후보 선택 O(n), 구조 단순
+최소 힙 병행:     갱신/선택 O(log n), 무효 기록 처리 필요
+빈도별 리스트:    평균 갱신/선택 O(1), 상태 일관성 관리 복잡
+```
+
+확인 질문: 현재 LRU 리스트 하나에 frequency만 정렬해서 넣으면 되는가?
+답: 빈도 변경 때 정렬 위치를 찾는 비용이 생긴다. O(1) 목표라면 빈도별 버킷 구조가 필요하다.
+
+한 줄 답변:
+“LFU는 key 맵, 빈도별 LRU 리스트, min_frequency가 필요하고 모든 삭제 경로와 노화 정책까지 다시 설계해야 합니다.”
+
+================================================================
+[P11] 데이터가 10만 건이라면
+================================================================
+대응 대본: script.txt [P11]
+시연: 없음 — 규모 변경 분석
+평가 연결: 4-2
+공부 위치: Study.md 12.2절, README.md ‘데이터가 10만 건이라면’
+코드 확인:
+  hash_map.py:55 _resize()
+  hash_map.py:115 keys()
+  store.py:97 _purge_expired()
+
+1. 구체적인 확장 지점
+
+초기 capacity 8에서 새 key 추가 뒤 로드 팩터가 0.75를 초과할 때마다 2배가 된다.
+10만 키를 담으려면 capacity 131,072의 75%인 98,304개까지 유지할 수 있다.
+98,305번째 key에서 262,144로 확장한다.
+
+2. 현재 구조의 병목
+
+해시 충돌:
+  특정 버킷 체인이 길어지면 `_find_node()`가 선형 순회한다.
+
+stop-the-world resize:
+  한 SET이 모든 기존 HashEntry를 재해싱해 지연이 그 명령에 집중된다.
+
+빈 버킷 객체:
+  capacity 수만큼 빈 DoublyLinkedList를 미리 만들어 실제 key가 없는 버킷도 객체 비용이 든다.
+
+KEYS:
+  버킷 B개와 key n개를 순회하고 전체 결과 리스트와 출력 문자열을 만든다. O(B+n) 시간,
+  O(n) 추가 결과 공간과 출력 크기가 필요하다.
+
+TTL 지연 삭제:
+  TTL 재설정과 key 삭제가 반복되면 유효 TTL보다 힙 튜플이 훨씬 많아질 수 있다.
+
+만료 폭주:
+  같은 시각에 k개가 만료되면 한 `_purge_expired()`에서 O(k log m) 일이 집중된다.
+
+대량 eviction:
+  큰 SET 하나가 여러 작은 key를 tail부터 반복 삭제할 수 있다.
+
+긴 문자열:
+  해시와 UTF-8 인코딩, 출력 비용은 문자열 길이에도 비례한다.
+
+3. 우선 적용할 개선
+
+- 점진적 재해싱: 한 명령이 일부 버킷만 옮기고 조회는 이전·새 테이블을 함께 확인한다.
+- 버킷 지연 생성: 실제 충돌 체인이 필요할 때만 리스트 객체를 만든다.
+- cursor 기반 KEYS: 한 번에 제한된 수만 반환하고 클라이언트가 이어서 요청한다.
+- 힙 재구성: 무효 기록 비율이 기준을 넘으면 현재 TTL만으로 새 힙을 만든다.
+- 만료 작업 budget: 명령 하나가 처리할 만료 수나 시간을 제한한다.
+
+4. 샤딩
+
+`hash(key) % shard_count` 같은 규칙으로 여러 Store에 나누면 각 샤드가 자체 HashMap, LRU,
+TTL 힙, 메모리 카운터를 갖고 병렬 처리할 수 있다.
+
+대가:
+- 정확한 전역 LRU를 유지하기 어렵다.
+- 전역 maxmemory를 샤드별 예산으로 나누거나 후보를 샘플링해야 한다.
+- KEYS, DBSIZE, INFO 결과를 모든 샤드에서 모아야 한다.
+- 인기 key가 한 샤드에 몰리는 hot shard가 생길 수 있다.
+
+5. 비동기화
+
+이벤트 루프나 백그라운드 작업으로 점진적 재해싱과 만료 청소를 작은 단위로 나누면 긴 정지를
+줄일 수 있다. 하지만 async I/O만 도입해도 CPU 중심의 재해싱과 인코딩이 빨라지는 것은 아니다.
+Python 스레드의 GIL, 프로세스 분리의 직렬화와 통신 비용도 고려해야 한다.
+
+6. 먼저 측정할 값
+
+p50보다 p95/p99 명령 지연, resize 소요 시간, 최대 버킷 체인 길이, 유효 TTL 수 대비 전체 힙
+기록 수, KEYS 응답 크기, eviction 1회당 제거 key 수, 실제 프로세스 메모리를 측정한다.
+
+확인 질문: key가 10만 개면 HashMap 조회는 무조건 느린가?
+답: 평균 분산과 로드 팩터가 유지되면 평균 조회는 여전히 짧을 수 있다. 문제는 충돌, 재해싱,
+전체 순회와 한 명령에 집중되는 tail latency다.
+
+한 줄 답변:
+“10만 건에서는 평균 조회보다 일괄 재해싱, KEYS 전체 출력, 무효 TTL과 만료 폭주가 병목이며 점진화·페이지화·샤딩을 검토합니다.”
+
+================================================================
+[P12] 오버헤드 메모리 모델과 공정한 채점
+================================================================
+대응 대본: script.txt [P12]
+시연: 없음 — 메모리 정의 변경 분석
+평가 연결: 4-3
+공부 위치: Study.md 12.3절, README.md ‘used_memory에 자료구조 오버헤드를 포함한다면’
+
+1. 현재 공식 모델
+
+```text
+logical_used_memory
+= Σ(UTF-8 key bytes + UTF-8 value bytes)
+```
+
+같은 문자열 데이터면 Python 버전이나 Node 설계와 관계없이 같은 값이 나와 학습 과제의 채점이
+재현 가능하다.
+
+2. 포함해야 할 오버헤드
+
+- StoreEntry와 expire_at 필드
+- HashEntry
+- 해시 버킷 Node와 LRU Node
+- Node의 prev, next, data 참조
+- 버킷 배열 슬롯과 미리 만든 빈 DoublyLinkedList
+- MinHeap 리스트와 `(expire_at, key)` 튜플
+- 지연 삭제로 남은 무효 TTL 기록
+- 배열의 예약 용량
+- resize 중 old_buckets와 new_buckets가 동시에 존재하는 최대 순간 사용량
+
+3. 중복 계산 문제
+
+HashEntry.value와 LRU 리스트가 같은 lru_node를 가리킨다. 힙 튜플의 key와 StoreEntry.key도 같은
+문자열 객체를 공유할 수도 있고 아닐 수도 있다. 참조가 여러 번 나온다고 객체 본체를 매번 더하면
+과대 계산이다. 객체의 `id()` 같은 정체성으로 방문 여부를 추적해 본체는 한 번만 세고, 참조 슬롯
+비용을 어떤 규칙으로 포함할지는 별도로 정의해야 한다.
+
+4. sys.getsizeof의 한계
+
+`sys.getsizeof(container)`는 보통 그 객체의 얕은 크기다. 자식 Node와 문자열을 자동으로 모두
+더해 주지 않는다. 반대로 문자열 객체 크기에 문자 저장 공간이 포함됐는데 UTF-8 payload를 또
+더하면 이중 계산이 된다. Python 할당자의 예약 메모리와 운영체제가 보는 RSS도 다른 값이다.
+
+5. 보정 방법 A — 가상 단가표
+
+모든 제출물에 같은 규칙을 적용한다.
+
+```text
+문자열 payload 바이트
++ 엔트리당 고정 비용
++ Node당 고정 비용
++ 버킷 슬롯당 고정 비용
++ TTL 기록당 고정 비용
+```
+
+실제 메모리와 정확히 같지는 않지만 언어 런타임과 개인 구현 차이를 줄여 재현 가능한 비교가 된다.
+
+6. 보정 방법 B — 실제 객체 그래프 측정
+
+동일 Python, OS, 아키텍처에서 Store가 소유한 객체를 같은 범위로 순회한다. 객체 정체성으로
+중복을 제거하고 빈 Store 기준값을 포함할지 뺄지 통일한다. garbage collection 시점과 반복 측정
+방법도 같아야 한다.
+
+7. 동일 데이터만으로 충분하지 않은 이유
+
+최종 key/value가 같아도 TTL을 여러 번 재설정한 실행은 무효 힙 기록이 더 많다. resize 직전과
+직후의 capacity도 다를 수 있고, resize 순간에는 두 버킷 배열이 함께 존재한다. 따라서 다음을
+같게 해야 한다.
+
+- 데이터와 입력 순서
+- TTL 재설정·DEL·재삽입을 포함한 전체 명령 이력
+- 측정 시점과 GC 조건
+- 정상 상태 또는 최대 순간값 중 무엇을 비교하는지
+- 반복 횟수, 중앙값/평균, 허용 오차
+
+8. 정책 영향
+
+오버헤드를 maxmemory에 포함하면 짧은 key도 Node 비용 때문에 더 일찍 제거된다. 빈 버킷 확장이나
+무효 TTL 기록만으로 제한을 넘을 수도 있다. 따라서 표시 숫자만 바꾸는 것이 아니라 모든 할당과
+해제, resize, heap push/pop에서 메모리 카운터와 OOM/eviction 시점을 다시 설계해야 한다.
+
+9. 권장 보고 방식
+
+```text
+logical_used_memory: 과제 공식 payload 값
+physical_or_estimated_memory: 합의한 오버헤드 포함 값
+```
+
+둘을 나누면 정책이 올바른지와 구현이 실제로 메모리를 얼마나 쓰는지를 구분해 비교할 수 있다.
+
+확인 질문: 각자 sys.getsizeof를 사용하면 공정한가?
+답: 아니다. 순회 범위, 중복 제거, Python 버전과 플랫폼을 통일하지 않으면 같은 데이터도 값이 달라진다.
+
+한 줄 답변:
+“오버헤드 모델은 객체 범위와 중복 제거를 통일하고 동일 환경·명령 이력·측정 시점에서 비교해야 하며, payload와 물리 사용량을 분리해 보고해야 합니다.”
+
+================================================================
+마지막 요약 카드
+================================================================
+
+이중 연결 리스트:
+  Node 참조를 알고 있을 때 양옆 연결만 바꿔 O(1) 삽입·삭제·이동.
+
+HashMap:
+  직접 해시 → 버킷 index → 체이닝 key 비교. 로드 팩터 > 0.75이면 2배 재해싱.
+
+LRU:
+  HashMap key → LRU Node, head=MRU, tail=LRU. 평균 O(1) 조회+이동.
+
+메모리:
+  UTF-8 key/value payload 합. SET 뒤 초과하면 tail부터 제거, eviction만 통계 증가.
+
+TTL:
+  StoreEntry의 현재 expire_at + MinHeap 후보. 현재 시각과 일치하는 기록만 실제 만료.
+
+GET:
+  TTL 확인 → 만료 삭제 여부 → key 조회 → 성공한 경우만 LRU 이동 → 값 반환.
+
+LFU 변경:
+  key 맵 + 빈도별 리스트 + min_frequency + 동률/노화/삭제 정책.
+
+10만 건:
+  일괄 resize, 빈 버킷, KEYS, 무효 힙, 만료·eviction 폭주를 측정하고 점진화한다.
+
+오버헤드 모델:
+  동일 범위·중복 제거·환경·명령 이력·측정 시점으로 보정하고 논리/물리 값을 분리한다.
+
+제약:
+  dict, set, collections로 HashMap이나 캐시를 대체하지 않으며 보너스 기능은 구현 범위가 아니다.
