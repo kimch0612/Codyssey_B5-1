@@ -37,4 +37,14 @@ def execute_command(store: Store, tokens: List[str]) -> Optional[str]:
 
         return f"\"{value}\""
 
+    elif command == "DEL":
+        if len(tokens) != 2:
+            return "(error) ERR wrong number of arguments for 'del' command"
+
+        deleted = store.del_key(tokens[1])
+        if deleted:
+            return "(integer) 1"
+
+        return "(integer) 0"
+
     return f"(error) ERR unknown command '{tokens[0]}'"

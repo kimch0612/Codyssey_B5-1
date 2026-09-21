@@ -334,7 +334,7 @@ LRU 갱신 의무는 원문에 명시된 성공한 `SET`·`GET`에 적용한다.
 
 - [x] `SET key value`: 성공 시 `OK`, 저장 불가능한 단일 엔트리에는 OOM 에러를 출력한다.
 - [x] `GET key`: 유효한 키는 `"value"`, 없거나 만료된 키는 `(nil)`을 출력한다.
-- [ ] `DEL key`: 삭제 성공 시 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
+- [x] `DEL key`: 삭제 성공 시 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
 - [ ] `EXISTS key`: 존재하면 `(integer) 1`, 없거나 만료되었으면 `(integer) 0`을 출력한다.
 - [ ] `DBSIZE`: 현재 키 수를 `(integer) N`으로 출력한다.
 - [ ] `KEYS`: 전체 키를 배열 형태로 출력하고, 비어 있으면 `(empty array)` 같은 방식으로 표현한다. 특정 정렬 순서를 검사하지 않는다.
