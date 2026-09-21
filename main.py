@@ -153,3 +153,6 @@ def run_repl() -> None:
         result = execute_command(store, tokens)
         if result is not None:
             print(result)
+
+if __name__ == "__main__":
+    run_repl()

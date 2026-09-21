@@ -349,7 +349,7 @@ LRU 갱신 의무는 원문에 명시된 성공한 `SET`·`GET`에 적용한다.
 - [x] 인자 개수 오류에 `(error) ERR wrong number of arguments for '<cmd>' command` 형식으로 응답한다.
 - [x] 정수 파싱 실패에 `(error) ERR value is not an integer or out of range` 형식으로 응답한다.
 - [x] OOM에 `(error) OOM command not allowed when used_memory > 'maxmemory'` 형식으로 응답한다.
-- [ ] 실행 진입점에서 `mini-redis>` 프롬프트와 입력 → 파싱 → 실행 → 출력 반복을 시작한다.
+- [x] 실행 진입점에서 `mini-redis>` 프롬프트와 입력 → 파싱 → 실행 → 출력 반복을 시작한다.
 - [x] 같은 실행 세션에서 이전 명령으로 저장한 데이터·설정·LRU·TTL 상태가 유지된다.
 - [x] 처리한 명령 오류를 출력한 후 다음 명령을 받을 수 있다.
 - [x] `exit`와 `quit`으로 종료할 수 있다.
