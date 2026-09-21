@@ -12,7 +12,7 @@ script2.txt — script.txt P01~P12의 공부용 확장 자료
 [P01] 범위와 전체 구조
 ================================================================
 대응 대본: script.txt [P01]
-시연: 없음
+시연: 없음 / 이미지: Docs/Images/01_store_architecture.png
 평가 연결: 1-1, 3-1
 코드 확인:
   main.py:134 run_repl()
@@ -62,7 +62,7 @@ _expiry_heap: MinHeap
 [P02] REPL과 기본 문자열 명령
 ================================================================
 대응 대본: script.txt [P02]
-시연: cli.txt D03~D14
+시연: cli.txt D03~D14 / 이미지: Docs/Images/01_store_architecture.png
 평가 연결: 1-1, 1-5
 코드 확인:
   main.py:10 parse_input()
@@ -124,7 +124,7 @@ KEYS → 번호 목록 또는 `(empty array)`
 [P03] 이중 연결 리스트와 체이닝 해시맵
 ================================================================
 대응 대본: script.txt [P03]
-시연: 없음
+시연: 없음 / 이미지: Docs/Images/02_hashmap_chaining.png
 평가 연결: 2-1, 2-2, 2-3
 코드 확인:
   doubly_linked_list.py:5 Node
@@ -202,7 +202,7 @@ O(1)이라고 표현한다. 충돌이 집중된 최악에는 체인 길이만큼
 [P04] 로드 팩터 확장과 최소 힙
 ================================================================
 대응 대본: script.txt [P04]
-시연: 없음
+시연: 없음 / 이미지: Docs/Images/02_hashmap_chaining.png
 평가 연결: 2-4, 3-3
 코드 확인:
   hash_map.py:51 _load_factor()
@@ -256,7 +256,7 @@ O(log n)으로 이 질문을 지원한다. 모든 StoreEntry를 매번 훑으면
 [P05] HashMap과 리스트를 결합한 LRU
 ================================================================
 대응 대본: script.txt [P05]
-시연: cli.txt M02~M07
+시연: cli.txt M02~M07 / 이미지: Docs/Images/03_lru_o1.png
 평가 연결: 3-1, 3-2, 3-5
 코드 확인:
   store.py:153 set()
@@ -314,7 +314,7 @@ HashMap에서 기존 lru_node를 얻어 `lru_node.data.value`만 바꾼다. 새 
 [P06] 메모리 계산과 LRU eviction
 ================================================================
 대응 대본: script.txt [P06]
-시연: cli.txt M08~M14
+시연: cli.txt M08~M14 / 이미지: Docs/Images/04_memory_eviction.png
 평가 연결: 1-2, 1-3, 3-4
 코드 확인:
   store.py:34 _entry_size()
@@ -378,7 +378,7 @@ evict b    d,a,c            6       1
 [P07] EXPIRE, TTL과 지연 삭제
 ================================================================
 대응 대본: script.txt [P07]
-시연: cli.txt T01~T10
+시연: cli.txt T01~T10 / 이미지: Docs/Images/05_ttl_lazy_deletion.png
 평가 연결: 1-4, 3-3
 코드 확인:
   store.py:58 expire()
@@ -439,7 +439,7 @@ key 자체가 없음              → 오래된 기록, 튜플만 폐기
 [P08] 유효한 키와 GET 전체 흐름
 ================================================================
 대응 대본: script.txt [P08]
-시연: cli.txt T11~T15
+시연: cli.txt T11~T15 / 이미지: Docs/Images/06_get_validity_flow.png
 평가 연결: 3-4, 3-5
 코드 확인:
   store.py:123 _expire_if_needed()
@@ -505,7 +505,7 @@ DBSIZE/KEYS/INFO memory:
 [P09] 오류 처리와 종료
 ================================================================
 대응 대본: script.txt [P09]
-시연: cli.txt E11~E20, X01~X02
+시연: cli.txt E11~E20, X01~X02 / 이미지: Docs/Images/07_repl_error_handling.png
 평가 연결: 1-5
 코드 확인:
   main.py:14 execute_command()
@@ -553,7 +553,7 @@ input 호출만 KeyboardInterrupt와 EOFError로 감싼다. 줄바꿈 후 반복
 [P10] LRU를 LFU로 바꾼다면
 ================================================================
 대응 대본: script.txt [P10]
-시연: 없음 — 현재 구현이 아니라 조건 변경 설계
+시연: 없음 — 현재 구현이 아니라 조건 변경 설계 / 이미지: Docs/Images/08_scaling_and_policy_changes.png
 평가 연결: 4-1
 공부 위치: Study.md 12.1절, README.md ‘LRU를 LFU로 바꾼다면’
 
@@ -623,7 +623,7 @@ frequency만 저장: 갱신 O(1), 후보 선택 O(n), 구조 단순
 [P11] 데이터가 10만 건이라면
 ================================================================
 대응 대본: script.txt [P11]
-시연: 없음 — 규모 변경 분석
+시연: 없음 — 규모 변경 분석 / 이미지: Docs/Images/08_scaling_and_policy_changes.png
 평가 연결: 4-2
 공부 위치: Study.md 12.2절, README.md ‘데이터가 10만 건이라면’
 코드 확인:
@@ -705,7 +705,7 @@ p50보다 p95/p99 명령 지연, resize 소요 시간, 최대 버킷 체인 길�
 [P12] 오버헤드 메모리 모델과 공정한 채점
 ================================================================
 대응 대본: script.txt [P12]
-시연: 없음 — 메모리 정의 변경 분석
+시연: 없음 — 메모리 정의 변경 분석 / 이미지: Docs/Images/08_scaling_and_policy_changes.png
 평가 연결: 4-3
 공부 위치: Study.md 12.3절, README.md ‘used_memory에 자료구조 오버헤드를 포함한다면’
 
