@@ -205,6 +205,10 @@ class Store:
 
     def exists(self, key: str) -> bool:
         """키의 존재 여부를 반환한다. 값의 내용과 관계없이 존재하면 True를 반환한다."""
+        expired = self._expire_if_needed(key)
+        if expired is True: # 해당 키가 이미 만료되었는가?
+            return False
+
         if self._data.contains(key) is False:
             return False
         else:
