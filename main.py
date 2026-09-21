@@ -27,5 +27,14 @@ def execute_command(store: Store, tokens: List[str]) -> Optional[str]:
         else:
             return "(error) OOM command not allowed when used_memory > 'maxmemory'"
 
-    else:
-        return f"(error) ERR unknown command '{tokens[0]}'"
+    elif command == "GET":
+        if len(tokens) != 2:
+            return "(error) ERR wrong number of arguments for 'get' command"
+
+        value = store.get(tokens[1])
+        if value is None:
+            return "(nil)"
+
+        return f"\"{value}\""
+
+    return f"(error) ERR unknown command '{tokens[0]}'"
