@@ -57,13 +57,16 @@ class Store:
 
     def expire(self, key: str, seconds: int) -> bool:
         """키에 만료 시간을 설정하면 True를, 키가 없으면 False를 반환한다."""
+        if self._expire_if_needed(key):
+            return False
+
         lnode = self._data.get(key)
         if lnode is None:
             return False
 
         if seconds <= 0:
-            if self.del_key(key) is True:
-                return True
+            self.del_key(key)
+            return True # del_key 메서드의 결과가 어떻던지간에 무조건 삭제한 것으로 취급할 것이므로 True로 고정함
         else:
             timer = time.time() + seconds
             lnode.data.expire_at = timer
@@ -131,7 +134,8 @@ class Store:
         if expire_at > current:
             return False # 아직 만료되지 않았다
         
-        return self.del_key(key)
+        self.del_key(key) # 삭제 후 날라온 값과 상관 없이 항상 True 반환
+        return True
 
     def _evict_lru(self) -> bool:
         """가장 오래 사용하지 않은 키 하나를 제거하고 성공 여부를 반환한다."""
@@ -148,6 +152,7 @@ class Store:
 
     def set(self, key: str, value: str) -> bool:
         """키에 값을 저장하면 True를, 단일 엔트리 OOM이면 False를 반환한다."""
+        expired = self._expire_if_needed(key)
         entry_size = self._entry_size(key, value)
 
         if (self._maxmemory > 0) and (entry_size > self._maxmemory): # Out Of Memory 발생 조건인가?
@@ -164,6 +169,7 @@ class Store:
             old_value = lru_node.data.value
             lru_node.data.value = value
             self._used_memory += (self._entry_size(key, value) - self._entry_size(key, old_value))
+            lru_node.data.expire_at = None # 데이터를 갱신한 경우 만료 시간을 제거한다
             self._lru.move_to_front(lru_node)
 
         if self._maxmemory > 0:
@@ -189,6 +195,9 @@ class Store:
     def del_key(self, key: str) -> bool:
         """키를 삭제한다. 삭제 성공 시 True, 없는 키이면 False를 반환한다."""
         lru_node = self._data.get(key)
+        if lru_node is not None:
+            expire_at = lru_node.data.expire_at
+            was_expired = True if (expire_at is not None) and (expire_at <= time.time()) else False
 
         if lru_node is None:
             return False
@@ -201,7 +210,10 @@ class Store:
             else:
                 lru_node_deleted = self._lru.remove_node(lru_node) # 반환받은 객체는 어쩌지? 일단 들고는 있어보자
                 self._used_memory -= entry_size
-                return True
+                if was_expired:
+                    return False
+                else:
+                    return True
 
     def exists(self, key: str) -> bool:
         """키의 존재 여부를 반환한다. 값의 내용과 관계없이 존재하면 True를 반환한다."""
