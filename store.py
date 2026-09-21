@@ -77,6 +77,10 @@ class Store:
             self._used_memory += (self._entry_size(key, value) - self._entry_size(key, old_value))
             self._lru.move_to_front(lru_node)
 
+        if self._maxmemory > 0:
+            while self._used_memory > self._maxmemory:
+                self._evict_lru() # 설정한 최대 메모리를 초과하지 않을 때까지 가장 오래 사용하지 않은 키를 하나씩 제거한다
+
         return True
 
     def get(self, key: str) -> Optional[str]:
