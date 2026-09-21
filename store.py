@@ -68,6 +68,27 @@ class Store:
             self._expiry_heap.push((timer, key))
             return True
 
+    def ttl(self, key: str) -> int:
+        """키의 남은 TTL을 정수 초로 반환한다."""
+        expired = self._expire_if_needed(key)
+        if expired is True:
+            return -2 # 방금 만료되어 삭제된 키다
+        
+        lru_node = self._data.get(key)
+        if lru_node is None:
+            return -2 # 원래부터 없는 키다
+        
+        expire_at = lru_node.data.expire_at
+        if expire_at is None:
+            return -1 # TTL이 없는 키다
+        
+        remaining = expire_at - time.time()
+        if remaining <= 0:
+            self.del_key(key)
+            return -2 # 첫 번째 만료 검사 직후에 만료된 키이므로 제거한다
+        
+        return int(remaining)
+
     def _purge_expired(self) -> None:
         """현재 시각까지 만료된 힙 기록과 유효한 엔트리를 정리한다."""
         current = time.time()
