@@ -94,6 +94,22 @@ class Store:
             else:
                 self.del_key(key)
 
+    def _expire_if_needed(self, key: str) -> bool:
+        """키가 현재 만료되었다면 삭제하고 True를, 아니면 False를 반환한다."""
+        lru_node = self._data.get(key)
+        if lru_node is None:
+            return False
+        
+        expire_at = lru_node.data.expire_at
+        if expire_at is None:
+            return False # TTL이 없는 데이터다
+        
+        current = time.time()
+        if expire_at > current:
+            return False # 아직 만료되지 않았다
+        
+        return self.del_key(key)
+
     def _evict_lru(self) -> bool:
         """가장 오래 사용하지 않은 키 하나를 제거하고 성공 여부를 반환한다."""
         lru_tail = self._lru.tail
