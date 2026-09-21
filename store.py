@@ -51,6 +51,8 @@ class Store:
 
     def info_memory(self) -> tuple[int, int, int]:
         """현재 사용량, 메모리 제한, 제거된 키 수를 순서대로 반환한다."""
+        self._purge_expired()
+
         return self._used_memory, self._maxmemory, self._evicted_keys
 
     def expire(self, key: str, seconds: int) -> bool:
@@ -77,16 +79,16 @@ class Store:
         lru_node = self._data.get(key)
         if lru_node is None:
             return -2 # 원래부터 없는 키다
-        
+
         expire_at = lru_node.data.expire_at
         if expire_at is None:
             return -1 # TTL이 없는 키다
-        
+
         remaining = expire_at - time.time()
         if remaining <= 0:
             self.del_key(key)
             return -2 # 첫 번째 만료 검사 직후에 만료된 키이므로 제거한다
-        
+
         return int(remaining)
 
     def _purge_expired(self) -> None:
@@ -206,8 +208,12 @@ class Store:
 
     def dsize(self) -> int:
         """현재 저장된 키의 개수를 반환한다."""
+        self._purge_expired()
+
         return self._data.size()
 
     def keys(self) -> list:
         """저장된 키를 문자열 목록으로 반환한다. 순서·패턴 매칭은 요구하지 않는다."""
+        self._purge_expired()
+
         return self._data.keys()
