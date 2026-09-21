@@ -174,6 +174,10 @@ class Store:
 
     def get(self, key: str) -> Optional[str]:
         """키의 값을 반환한다. 존재하면 값 문자열, 없으면 None을 반환한다."""
+        expired = self._expire_if_needed(key)
+        if expired is True: # 해당 키가 이미 만료되었는가?
+            return None
+
         lru_node = self._data.get(key)
 
         if lru_node is None:
