@@ -37,14 +37,14 @@ class HashMap:
 
     def _find_node(self, key: str) -> Optional[Node]:
         """키와 일치하는 기존 버킷 노드를 반환하고, 없으면 None을 반환한다."""
-        idx = self._hash(key)
-        current = self._buckets[idx].head
+        idx = self._hash(key)               # 우체국 우편함 위치를 찾고
+        current = self._buckets[idx].head   # 해당 우편함의 첫 위치를 저장한다
 
-        while current:
-            if key == current.data.key:
+        while current:                      # 찾은 우편함의 우편이 남아있을 때까지 반복하는데
+            if key == current.data.key:     # 등기번호에 적힌 수신인과 내가 찾는 수신인이 일치하면 해당 값을 반환한다
                 return current
             else:
-                current = current.next
+                current = current.next      # 아니었다면 다음으로 넘어간다
         
         return None
 
